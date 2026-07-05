@@ -16,6 +16,8 @@ import (
 
 type CommandType string
 
+const stopCommand CommandType = "stop"
+
 type CommandHandler func(arg []string) error
 type Command struct {
 	commandName CommandType
@@ -35,10 +37,14 @@ func (u *UserCommands) Init() {
 
 		if len(splittedCommand) != 0 {
 			command := CommandType(splittedCommand[0])
+
 			commandArgs := []string{strings.Join(splittedCommand[1:], " ")}
 
 			u.Run(command, commandArgs)
 
+			if command == stopCommand {
+				return
+			}
 			continue
 		}
 

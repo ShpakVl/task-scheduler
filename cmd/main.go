@@ -1,24 +1,28 @@
 package main
 
 import (
-	"fmt"
+	"runtime"
+	"strconv"
 	"task-planner/internal/storage"
-	"task-planner/internal/task"
+	task_package "task-planner/internal/task"
 	task_manager "task-planner/internal/task-manager"
-	user_commands "task-planner/internal/user-commands"
 )
 
 func main() {
+	runtime.GOMAXPROCS(2)
+
 	var TasksDB storage.TaskStorage = storage.NewTaskStorage()
-	var TaskManager *task_manager.TaskManager = task_manager.NewTaskManager(&TasksDB)
+	var Runner *task_manager.Runner = task_manager.NewRunner()
+	var Queue *task_manager.Queue = task_manager.NewQueue(Runner.TaskProcessing)
+	var TaskManager *task_manager.TaskManager = task_manager.NewTaskManager(&TasksDB, Queue, Runner)
 
-	Command := user_commands.NewUserCommands()
+	TaskManager.StartTaskManager()
 
-	Command.Register("add", func(description []string) error {
-		_, err := TaskManager.CreateTask(task.NewTask(description[0], 100))
-		fmt.Print("Task added", err)
-		return err
-	})
-	Command.Init()
+	for i := 0; i < 40; i++ {
+		TaskManager.CreateTask(task_package.NewTask("INDEX "+strconv.Itoa(i), 100, i))
+	}
 
+	go initCLI(TaskManager)
+
+	TaskManager.WaitTaskManager()
 }

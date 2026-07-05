@@ -4,43 +4,42 @@ import "errors"
 
 type Task struct {
 	ID          int
-	description string
-	status
+	Description string
+	status      status
 	progress    uint
-	overallSize uint
+	OverallSize uint
 }
 
-func (t *Task) ChangeStatus(newStatus status) (bool, error) {
+func (t *Task) GetStatus() status {
+	return t.status
+}
+
+func (t *Task) SetStatus(newStatus status) error {
 	if t.validateStatus(newStatus) {
 		t.status = newStatus
-
-		return true, nil
+		return nil
 	}
 
-	return false, errors.New("unsupported status")
+	return errors.New("invalid status")
 }
 
-func (t *Task) ChangeProgress(newProgress uint) (uint, error) {
-	if t.validateProgress(newProgress) {
-		t.progress = newProgress
-
-		return t.progress, nil
+func (t *Task) GetProgress() uint {
+	return t.progress
+}
+func (t *Task) SetProgress(newProgress uint) error {
+	if t.progress > 100 || t.progress < 0 {
+		return errors.New("invalid progress")
 	}
-	return 0, errors.New("progress must be between 0 and 100")
+	t.progress = newProgress
+
+	return nil
 }
 
-func (t *Task) GetDescription() string {
-	return t.description
-}
-
-func (t Task) GetProgressPercent() uint {
-	return t.progress / t.overallSize
-}
-
-func NewTask(description string, overallSize uint) *Task {
+func NewTask(description string, overallSize uint, id int) *Task {
 	return &Task{
-		description: description,
-		overallSize: overallSize,
+		Description: description,
+		OverallSize: overallSize,
 		status:      STATUS_NOT_STARTED,
+		ID:          id,
 	}
 }

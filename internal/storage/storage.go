@@ -21,6 +21,16 @@ func (t *TaskStorage) GetById(id int) (TaskModel.Task, error) {
 	return *savedTask, err
 }
 
+func (t TaskStorage) GetAll() []TaskModel.Task {
+	copied := make([]TaskModel.Task, 0, len(t.tasks))
+
+	for _, v := range t.tasks {
+		copied = append(copied, *v)
+	}
+
+	return copied
+}
+
 func (t *TaskStorage) Create(task TaskModel.Task) (TaskModel.Task, error) {
 	currentTaskId := t.lastCreatedID + 1
 
