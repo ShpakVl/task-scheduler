@@ -3,6 +3,7 @@ package storage
 import (
 	"errors"
 	TaskModel "task-planner/internal/task"
+	"task-planner/internal/task-manager/ports"
 )
 
 type TaskStorage struct {
@@ -31,14 +32,14 @@ func (t TaskStorage) GetAll() []TaskModel.Task {
 	return copied
 }
 
-func (t *TaskStorage) Create(task TaskModel.Task) (TaskModel.Task, error) {
+func (t *TaskStorage) Create(task ports.CreateTaskInput) (TaskModel.Task, error) {
 	currentTaskId := t.lastCreatedID + 1
 
 	if !t.isTaskAlreadyExists(currentTaskId) {
 		// Reassign ID of the task param because currently it is filled with default value (0)
-		task.ID = currentTaskId
+		taskToCreate := TaskModel.NewTask(task.Description, currentTaskId)
 
-		t.tasks[currentTaskId] = &task
+		t.tasks[currentTaskId] = taskToCreate
 		t.increaseLastCreatedId()
 
 		return *t.tasks[currentTaskId], nil
@@ -61,8 +62,8 @@ func (t *TaskStorage) increaseLastCreatedId() {
 	t.lastCreatedID++
 }
 
-func NewTaskStorage() TaskStorage {
-	return TaskStorage{
+func NewTaskStorage() *TaskStorage {
+	return &TaskStorage{
 		tasks: make(map[int]*TaskModel.Task),
 	}
 }

@@ -2,33 +2,39 @@ package main
 
 import (
 	"strconv"
-	task_package "task-planner/internal/task"
+	"task-planner/internal/storage"
 	task_loop "task-planner/internal/task-loop"
-	"task-planner/internal/task-manager/service"
+	task_manager "task-planner/internal/task-manager"
+	"task-planner/internal/task-manager/ports"
 	"time"
 
 	"github.com/k0kubun/pp"
 )
 
 func main() {
-	//DB := storage.NewTaskStorage()
-	//TaskManager := task_manager.NewTaskManager(&DB)
+	DB := storage.NewTaskStorage()
+	Processor := task_loop.NewTaskLoop()
+	TaskManager := task_manager.NewTaskManager(DB, Processor)
+	TaskManager.StartTaskManager()
 
-	TaskLoop := task_loop.NewTaskLoop()
-	TaskLoop.Start()
 	t := time.Now()
-	for i := 1; i <= 3; i++ {
-		TaskLoop.AddTask(*task_package.NewTask("INDEX "+strconv.Itoa(i), 100, i), func(task *task_package.Task) {
-			service.EmulateTaskProgress(task)
+	for i := 1; i <= 30; i++ {
+		TaskManager.AddTask(ports.CreateTaskInput{
+			ID:          i,
+			Description: "ID=" + strconv.Itoa(i),
 		})
 	}
+
 	go func() {
-		time.Sleep(time.Millisecond * 2)
-		TaskLoop.Stop()
+		time.Sleep(time.Second * 5)
+
+		pp.Println("DB--> ", TaskManager.GetAllTasks())
+
+		TaskManager.StopTaskManager()
 	}()
 
-	//go initCLI(TaskManager)
+	//!!!BLOCKING TASK!!!///
+	TaskManager.WaitTaskManager()
 
-	TaskLoop.Wait()
 	pp.Println(time.Since(t).Seconds())
 }

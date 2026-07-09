@@ -5,16 +5,15 @@ import "errors"
 type Task struct {
 	ID          int
 	Description string
-	status      status
+	status      Status
 	progress    uint
-	OverallSize uint
 }
 
-func (t *Task) GetStatus() status {
+func (t *Task) GetStatus() Status {
 	return t.status
 }
 
-func (t *Task) SetStatus(newStatus status) error {
+func (t *Task) SetStatus(newStatus Status) error {
 	if t.validateStatus(newStatus) {
 		t.status = newStatus
 		return nil
@@ -35,10 +34,9 @@ func (t *Task) SetProgress(newProgress uint) error {
 	return nil
 }
 
-func NewTask(description string, overallSize uint, id int) *Task {
+func NewTask(description string, id int) *Task {
 	return &Task{
 		Description: description,
-		OverallSize: overallSize,
 		status:      STATUS_NOT_STARTED,
 		ID:          id,
 	}

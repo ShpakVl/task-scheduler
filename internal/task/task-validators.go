@@ -1,6 +1,6 @@
 package task
 
-func (t Task) validateStatus(newStatus status) bool {
+func (t Task) validateStatus(newStatus Status) bool {
 
 	return SUPPORTED_STATUSES[newStatus]
 }

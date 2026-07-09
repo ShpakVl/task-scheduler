@@ -112,7 +112,9 @@ func (j *JobsLoop) getTaskPostponed(postponedJob *[]Job) (Job, error) {
 }
 
 func (j *JobsLoop) startJobProcessing(task *task_package.Task, cb func(task *task_package.Task)) {
+	// Process task as blocking operation and publish event after processing
 	cb(task)
+
 	j.tasksSchedulerCh <- Job{Task: *task, Event: EVENT_DONE}
 }
 
