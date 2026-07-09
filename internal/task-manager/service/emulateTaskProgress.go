@@ -20,7 +20,7 @@ func EmulateTaskProgress(taskToProcess *task.Task) {
 			return
 
 		}
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Millisecond * 30)
 
 		taskToProcess.SetProgress(taskToProcess.GetProgress() + 50)
 

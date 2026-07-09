@@ -2,11 +2,8 @@ package task_loop
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 	task_package "task-planner/internal/task"
-
-	"github.com/k0kubun/pp"
 )
 
 type event string
@@ -19,6 +16,7 @@ type Job struct {
 
 type JobsLoop struct {
 	wg                sync.WaitGroup
+	once              *sync.Once
 	isShutdownPlanned bool
 	tasksSchedulerCh  chan Job
 	loopSchedulerCh   chan event
@@ -32,49 +30,63 @@ func (j *JobsLoop) Start() {
 }
 
 func (j *JobsLoop) startProcessingLoop() {
-	tasksInprogress := 0
+	defer j.wg.Done()
+
+	tasksInProgress := 0
 	postponedJobs := make([]Job, 0, MAX_TASKS_IN_PROGRESS)
 
-	for job := range j.tasksSchedulerCh {
-		fmt.Println("Job: ", job.Task.ID, " Event: ", job.Event)
-		switch job.Event {
-		case EVENT_ADD:
-			if tasksInprogress < MAX_TASKS_IN_PROGRESS {
-				tasksInprogress++
-				pp.Println("ADDED==> ", job.Task.ID)
-
-				go j.startJobProcessing(&job.Task, job.processingCb)
-
+	for j.loopSchedulerCh != nil || j.tasksSchedulerCh != nil {
+		select {
+		case job, ok := <-j.tasksSchedulerCh:
+			if !ok {
+				j.tasksSchedulerCh = nil
 				continue
 			}
-			j.addToPostponed(&postponedJobs, job)
+			j.handleJobEvent(job, &postponedJobs, &tasksInProgress)
 
-		case EVENT_DONE:
-			tasksInprogress--
-
-			if tasksInprogress == 0 && j.isShutdownPlanned {
-				close(j.tasksSchedulerCh)
-				j.loopSchedulerCh <- EVENT_STOP
+		case loopEvent, ok := <-j.loopSchedulerCh:
+			if !ok {
+				j.loopSchedulerCh = nil
+				continue
 			}
-
-			if nextJob, err := j.getTaskPostponed(&postponedJobs); err == nil && !j.isShutdownPlanned {
-				fmt.Print("Postponed task: ", nextJob.Task.ID, "\n")
-				j.tasksSchedulerCh <- nextJob
-			}
-
-		case EVENT_STOP:
-			j.isShutdownPlanned = true
+			j.handleLoopSchedulerEvent(loopEvent, tasksInProgress)
 		}
 
 	}
 
 }
 
-func (l *JobsLoop) loopScheduler() {
-	for event := range l.loopSchedulerCh {
-		switch event {
-		case EVENT_STOP:
-			l.Stop()
+func (j *JobsLoop) handleJobEvent(job Job, postponedJobs *[]Job, tasksInProgress *int) {
+	switch job.Event {
+	case EVENT_ADD:
+		if *tasksInProgress < MAX_TASKS_IN_PROGRESS && !j.isShutdownPlanned {
+			*tasksInProgress++
+			go j.startJobProcessing(&job.Task, job.processingCb)
+
+			return
+		}
+		j.addToPostponed(postponedJobs, job)
+
+	case EVENT_DONE:
+		*tasksInProgress--
+		if *tasksInProgress == 0 && j.isShutdownPlanned {
+			close(j.tasksSchedulerCh)
+
+			return
+		}
+		if nextJob, err := j.getTaskPostponed(postponedJobs); err == nil && !j.isShutdownPlanned {
+			j.tasksSchedulerCh <- nextJob
+		}
+	}
+}
+
+func (j *JobsLoop) handleLoopSchedulerEvent(loopEvent event, tasksInProgress int) {
+	switch loopEvent {
+	case EVENT_STOP:
+		j.isShutdownPlanned = true
+		close(j.loopSchedulerCh)
+		if tasksInProgress == 0 && j.isShutdownPlanned {
+			close(j.tasksSchedulerCh)
 		}
 	}
 }
@@ -109,13 +121,18 @@ func (j *JobsLoop) Wait() {
 }
 
 func (j *JobsLoop) Stop() {
-	j.wg.Done()
+	j.once.Do(func() {
+		j.loopSchedulerCh <- EVENT_STOP
+	})
+
 }
 
 func NewTaskLoop() *JobsLoop {
 	return &JobsLoop{
 		wg:                sync.WaitGroup{},
 		tasksSchedulerCh:  make(chan Job, 5),
+		loopSchedulerCh:   make(chan event),
+		once:              &sync.Once{},
 		isShutdownPlanned: false,
 	}
 }

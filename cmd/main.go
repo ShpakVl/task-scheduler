@@ -6,6 +6,8 @@ import (
 	task_loop "task-planner/internal/task-loop"
 	"task-planner/internal/task-manager/service"
 	"time"
+
+	"github.com/k0kubun/pp"
 )
 
 func main() {
@@ -14,20 +16,19 @@ func main() {
 
 	TaskLoop := task_loop.NewTaskLoop()
 	TaskLoop.Start()
-
-	for i := 1; i <= 10; i++ {
+	t := time.Now()
+	for i := 1; i <= 3; i++ {
 		TaskLoop.AddTask(*task_package.NewTask("INDEX "+strconv.Itoa(i), 100, i), func(task *task_package.Task) {
 			service.EmulateTaskProgress(task)
 		})
 	}
+	go func() {
+		time.Sleep(time.Millisecond * 2)
+		TaskLoop.Stop()
+	}()
 
 	//go initCLI(TaskManager)
-	go func() {
-		time.Sleep(time.Second * 40)
-		TaskLoop.Stop()
 
-	}()
 	TaskLoop.Wait()
-	//time.Sleep(time.Minute * 1)
-
+	pp.Println(time.Since(t).Seconds())
 }
