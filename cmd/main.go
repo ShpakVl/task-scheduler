@@ -1,28 +1,33 @@
 package main
 
 import (
-	"runtime"
 	"strconv"
-	"task-planner/internal/storage"
 	task_package "task-planner/internal/task"
-	task_manager "task-planner/internal/task-manager"
+	task_loop "task-planner/internal/task-loop"
+	"task-planner/internal/task-manager/service"
+	"time"
 )
 
 func main() {
-	runtime.GOMAXPROCS(2)
+	//DB := storage.NewTaskStorage()
+	//TaskManager := task_manager.NewTaskManager(&DB)
 
-	var TasksDB storage.TaskStorage = storage.NewTaskStorage()
-	var Runner *task_manager.Runner = task_manager.NewRunner()
-	var Queue *task_manager.Queue = task_manager.NewQueue(Runner.TaskProcessing)
-	var TaskManager *task_manager.TaskManager = task_manager.NewTaskManager(&TasksDB, Queue, Runner)
+	TaskLoop := task_loop.NewTaskLoop()
+	TaskLoop.Start()
 
-	TaskManager.StartTaskManager()
-
-	for i := 0; i < 40; i++ {
-		TaskManager.CreateTask(task_package.NewTask("INDEX "+strconv.Itoa(i), 100, i))
+	for i := 1; i <= 10; i++ {
+		TaskLoop.AddTask(*task_package.NewTask("INDEX "+strconv.Itoa(i), 100, i), func(task *task_package.Task) {
+			service.EmulateTaskProgress(task)
+		})
 	}
 
-	go initCLI(TaskManager)
+	//go initCLI(TaskManager)
+	go func() {
+		time.Sleep(time.Second * 40)
+		TaskLoop.Stop()
 
-	TaskManager.WaitTaskManager()
+	}()
+	TaskLoop.Wait()
+	//time.Sleep(time.Minute * 1)
+
 }

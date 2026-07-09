@@ -3,24 +3,29 @@ package service
 import (
 	"task-planner/internal/task"
 	"time"
+
+	"github.com/k0kubun/pp"
 )
 
-func EmulateTaskProgress(ch chan<- task.Task, taskToProcess task.Task) {
+func EmulateTaskProgress(taskToProcess *task.Task) {
 	for {
 		if taskToProcess.GetProgress() == 100 {
 
 			taskToProcess.SetStatus(task.STATUS_DONE)
 
-			ch <- taskToProcess
+			//ch <- taskToProcess
 
-			close(ch)
+			//close(ch)
 
 			return
 
 		}
-		time.Sleep(time.Nanosecond * 1)
-		taskToProcess.SetProgress(taskToProcess.GetProgress() + 20)
+		time.Sleep(time.Second * 1)
 
-		ch <- taskToProcess
+		taskToProcess.SetProgress(taskToProcess.GetProgress() + 50)
+
+		pp.Println(taskToProcess)
+
+		//ch <- taskToProcess
 	}
 }

@@ -1,8 +1,8 @@
-package repository
+package ports
 
 import "task-planner/internal/task"
 
-type TaskRepository interface {
+type Storage interface {
 	GetById(id int) (task.Task, error)
 	GetAll() []task.Task
 	Create(task task.Task) (task.Task, error)
