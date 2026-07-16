@@ -1,23 +1,38 @@
 package service
 
 import (
+	"context"
 	"task-planner/internal/task"
 	"time"
 )
 
-func EmulateTaskProgress(progressCh chan<- task.Task, taskToProcess *task.Task) {
-	for {
-		if taskToProcess.GetProgress() == 100 {
-			defer close(progressCh)
+type EmulateEvent struct {
+	Err  error
+	Task *task.Task
+}
 
-			taskToProcess.SetStatus(task.STATUS_DONE)
-			progressCh <- *taskToProcess
+func EmulateTaskProgress(ctx context.Context, progressCh chan<- EmulateEvent, taskToProcess *task.Task) {
+	defer close(progressCh)
+
+	for {
+		select {
+		case <-ctx.Done():
+			progressCh <- EmulateEvent{Err: ctx.Err(), Task: taskToProcess}
+
 			return
 
-		}
-		time.Sleep(time.Millisecond * 30)
+		default:
+			time.Sleep(time.Second * 4)
+			taskToProcess.SetProgress(taskToProcess.GetProgress() + 20)
 
-		taskToProcess.SetProgress(taskToProcess.GetProgress() + 50)
-		progressCh <- *taskToProcess
+			if taskToProcess.GetProgress() == 100 {
+				taskToProcess.SetStatus(task.STATUS_DONE)
+				progressCh <- EmulateEvent{Err: ctx.Err(), Task: taskToProcess}
+
+				return
+			}
+
+			progressCh <- EmulateEvent{Err: ctx.Err(), Task: taskToProcess}
+		}
 	}
 }

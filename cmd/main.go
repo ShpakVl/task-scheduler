@@ -15,23 +15,17 @@ func main() {
 	DB := storage.NewTaskStorage()
 	Processor := task_loop.NewTaskLoop()
 	TaskManager := task_manager.NewTaskManager(DB, Processor)
+
 	TaskManager.StartTaskManager()
+	go initCLI(TaskManager)
 
 	t := time.Now()
-	for i := 1; i <= 30; i++ {
+
+	for i := 1; i <= 10; i++ {
 		TaskManager.AddTask(ports.CreateTaskInput{
-			ID:          i,
 			Description: "ID=" + strconv.Itoa(i),
 		})
 	}
-
-	go func() {
-		time.Sleep(time.Second * 5)
-
-		pp.Println("DB--> ", TaskManager.GetAllTasks())
-
-		TaskManager.StopTaskManager()
-	}()
 
 	//!!!BLOCKING TASK!!!///
 	TaskManager.WaitTaskManager()

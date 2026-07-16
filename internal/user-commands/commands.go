@@ -40,7 +40,11 @@ func (u *UserCommands) Init() {
 
 			commandArgs := []string{strings.Join(splittedCommand[1:], " ")}
 
-			u.Run(command, commandArgs)
+			err := u.Run(command, commandArgs)
+
+			if err != nil {
+				fmt.Println(err)
+			}
 
 			if command == stopCommand {
 				return

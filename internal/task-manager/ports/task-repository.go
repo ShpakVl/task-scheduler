@@ -1,6 +1,7 @@
 package ports
 
 import (
+	"context"
 	task_package "task-planner/internal/task"
 )
 
@@ -11,10 +12,18 @@ type TaskRepository interface {
 	Update(task task_package.Task) (task_package.Task, error)
 }
 
+type ProcessingCb func(ctx context.Context, task *task_package.Task) error
+type StopCb func(taskId int) error
+
 type TaskProcessor interface {
 	Start()
 	Wait()
 	Stop()
 
-	AddTask(task task_package.Task, processingCb func(task *task_package.Task))
+	CancelTask(taskId int)
+	AddTask(
+		task task_package.Task,
+		processingCb ProcessingCb,
+		stopCb StopCb,
+	)
 }
